@@ -13,39 +13,34 @@ contract Donation {
     error ZeroAmountError(address caller);
     error NotAnOwnerError(address caller);
 
-    event Transfer(address indexed from, address indexed to, uint256 value);
+    event Transfer(address indexed from, uint256 value);
    
     constructor() {
         owner = msg.sender;
-        totalDonationsAmount = 0;
     }
 
     function donate() external payable {
-        uint256 funds = msg.value;
-        if(funds <= 0) { 
+        if(msg.value <= 0) { 
             revert ZeroAmountError(msg.sender);
         }
-
-        charityAddresses.push(msg.sender);
-        _donations[msg.sender] += funds;
-        totalDonationsAmount += funds;
-        emit Transfer(msg.sender,address(0),funds);        
+        if(_donations[msg.sender] == 0){
+            charityAddresses.push(msg.sender);
+        }
+        _donations[msg.sender] += msg.value;
+        totalDonationsAmount += msg.value;
+        emit Transfer(msg.sender, msg.value);        
     }
 
-    function sendHelp(address payable to, uint256 amount) external payable  {
+    function sendHelp(address payable to, uint256 amount) external {
         if (msg.sender != owner) {
             revert NotAnOwnerError(msg.sender);
         }
-        if (amount <= 0 ){
-            revert ZeroAmountError(msg.sender);
-        }
-        if (amount > totalDonationsAmount ){
+        if (amount > address(this).balance ){
             revert ZeroAmountError(msg.sender);
         }
         bool sent = to.send(amount);//2300 gas
         if(sent){
-            emit Transfer(msg.sender, to, amount);
-            totalDonationsAmount -= amount;
+            emit Transfer(msg.sender, amount);
         }else {
             revert();
         }
@@ -60,7 +55,7 @@ contract Donation {
     }
 
     receive() external payable {
-        emit Transfer(msg.sender, address(0), msg.value);
+        emit Transfer(msg.sender, msg.value);
     }
 
 }
